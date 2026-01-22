@@ -84,17 +84,75 @@ static PyObject* py_execute(SQLiteDBObject* self, PyObject* args) {
   const char* sql;
   char* errMsg;
   PyObject* result_list;
+  PyObject* params = NULL;
+  sqlite3_stmt* stmt;
 
-  if (!PyArg_ParseTuple(args, "s", &sql)) {
+  if (!PyArg_ParseTuple(args, "s|O", &sql, &params)) {
+    return NULL;
+  }
+
+  if (sqlite3_prepare_v2(self->db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+    PyErr_SetString(PyExc_RuntimeError, sqlite3_errmsg(self->db));
     return NULL;
   }
 
   result_list = PyList_New(0);
-  if (sqlite3_exec(self->db, sql, py_callback, result_list, &errMsg) !=
-      SQLITE_OK) {
-    PyErr_SetString(PyExc_RuntimeError, errMsg);
-    sqlite3_free(errMsg);
-    return NULL;
+  if (params && PyTuple_Check(params)) {
+    Py_ssize_t param_count = PyTuple_Size(params);
+    for (Py_ssize_t i = 0; i < param_count; i++) {
+      PyObject* param = PyTuple_GetItem(params, i);
+      if (PyUnicode_Check(param)) {
+        const char* text = PyUnicode_AsUTF8(param);
+        sqlite3_bind_text(stmt, i + 1, text, -1, SQLITE_TRANSIENT);
+      } else if (PyLong_Check(param)) {
+        sqlite3_bind_int64(stmt, i + 1, PyLong_AsLongLong(param));
+      } else if (PyFloat_Check(param)) {
+        sqlite3_bind_double(stmt, i + 1, PyFloat_AsDouble(param));
+      } else if (PyBytes_Check(param)) {
+        sqlite3_bind_blob(stmt, i + 1, PyBytes_AsString(param),
+                          PyBytes_Size(param), SQLITE_TRANSIENT);
+      } else if (param == Py_None) {
+        sqlite3_bind_null(stmt, i + 1);
+      }
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      int columns = sqlite3_column_count(stmt);
+      PyObject* row = PyList_New(columns);
+
+      for (int i = 0; i < columns; i++) {
+        switch (sqlite3_column_type(stmt, i)) {
+          case SQLITE_TEXT:
+            PyList_SetItem(row, i,
+                           PyUnicode_FromString(
+                               (const char*)sqlite3_column_text(stmt, i)));
+            break;
+          case SQLITE_INTEGER:
+            PyList_SetItem(row, i,
+                           PyLong_FromLongLong(sqlite3_column_int64(stmt, i)));
+            break;
+          case SQLITE_FLOAT:
+            PyList_SetItem(row, i,
+                           PyFloat_FromDouble(sqlite3_column_double(stmt, i)));
+            break;
+          case SQLITE_NULL:
+            PyList_SetItem(row, i, Py_None);
+            Py_INCREF(Py_None);
+            break;
+        }
+      }
+
+      PyList_Append(result_list, row);
+      Py_DECREF(row);
+    }
+    sqlite3_finalize(stmt);
+  } else {
+    if (sqlite3_exec(self->db, sql, py_callback, result_list, &errMsg) !=
+        SQLITE_OK) {
+      PyErr_SetString(PyExc_RuntimeError, errMsg);
+      sqlite3_free(errMsg);
+      return NULL;
+    }
   }
 
   return result_list;
