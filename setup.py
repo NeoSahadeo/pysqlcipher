@@ -18,4 +18,6 @@ setup(name='sqlcipher',
       version='0.1',
       author="Neo Sahadeo",
       description='Python binding for SQLCipher',
+      package_data={'': ['sqlcipher.cpython-314-x86_64-linux-gnu.so']},
+      include_package_data=True,
       ext_modules=[sqlcipher_module])

@@ -29,7 +29,7 @@ db.close()
 
 
 
-# LICENSE(S)
+## LICENSE(S)
 
 For all binaries and sources that belong to ZETETIC LLC and that are used in
 bindings belong to and have the respected copyright of BSD 3-Clause License.
