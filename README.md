@@ -25,9 +25,29 @@ db.close()
 
 ## Installing
 
+Compiled only for Linux x86-64.
+
+Download the `sqlcipher.cpython-314-x86_64-linux-gnu.so` file.
+
 ## Compiling
 
+__Linux Bash__
 
+```bash
+git clone --depth=1 https://github.com/NeoSahadeo/pysqlcipher
+cd pysqlcipher
+git clone --depth=1 https://github.com/sqlcipher/sqlcipher
+cd sqlcipher
+./configure --with-tempstore=yes CFLAGS="-DSQLITE_HAS_CODEC -DSQLITE_EXTRA_INIT=sqlcipher_extra_init -DSQLITE_EXTRA_SHUTDOWN=sqlcipher_extra_shutdown" \
+	LDFLAGS="-lcrypto"
+make sqlite3.o
+cd ..
+make gen_so
+```
+
+## Contributing
+
+Contributions welcome. Currently in need of a python package for pip.
 
 ## LICENSE(S)
 
