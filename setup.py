@@ -1,6 +1,11 @@
 # LICENSE MIT Neo Sahadeo 2026
 
+import sys
 from setuptools import setup, Extension
+
+if 'build_ext' in sys.argv:
+    print("Using pre-built .so - skipping compilation")
+    sys.exit(0)
 
 sqlcipher_module = Extension('sqlcipher',
                              sources=['sqlcipher_pyext.c'],
