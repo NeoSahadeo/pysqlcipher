@@ -1,4 +1,4 @@
-SqlCipherMethods# Python Bindings for SQL Cipher
+# Python Bindings for SQL Cipher
 
 __Provided methods__
 
