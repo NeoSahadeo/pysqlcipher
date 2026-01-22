@@ -3,10 +3,6 @@
 import sys
 from setuptools import setup, Extension
 
-if 'build_ext' in sys.argv:
-    print("Using pre-built .so - skipping compilation")
-    sys.exit(0)
-
 sqlcipher_module = Extension('sqlcipher',
                              sources=['sqlcipher_pyext.c'],
                              extra_objects=['sqlcipher/sqlite3.o'],
@@ -23,6 +19,4 @@ setup(name='sqlcipher',
       version='0.1',
       author="Neo Sahadeo",
       description='Python binding for SQLCipher',
-      package_data={'': ['sqlcipher.cpython-314-x86_64-linux-gnu.so']},
-      include_package_data=True,
       ext_modules=[sqlcipher_module])
