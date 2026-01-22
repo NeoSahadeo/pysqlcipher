@@ -1,8 +1,8 @@
-# Python Bindings for SQL Cipher
+SqlCipherMethods# Python Bindings for SQL Cipher
 
 __Provided methods__
 
-- `SQLiteDB` - connect to a db
+- `open` - connect to a db
 - `execute` - execute a sql commmand
 - `close` - close a connection to a db
 
@@ -14,7 +14,7 @@ __Provided methods__
 import sqlcipher
 
 # SQLiteDB takes in the name and key of the database
-db = sqlcipher.SQLiteDB("test.db", "test1234")
+db = sqlcipher.open("test.db", "test1234")
 
 # Execute will run an SQL command
 print(db.execute("SELECT * FROM movies;"))

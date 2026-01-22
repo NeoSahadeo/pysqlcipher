@@ -2,6 +2,6 @@
 
 import sqlcipher
 
-db = sqlcipher.SQLiteDB("test.db", "test1234")
+db = sqlcipher.open("test.db", "test1234")
 print(db.execute("SELECT * FROM movies;"))
 db.close()

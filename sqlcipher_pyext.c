@@ -16,6 +16,7 @@ static void SQLiteDB_dealloc(SQLiteDBObject* self) {
     self->db = NULL;
   }
   PyMem_Free(self->db_path);
+  PyMem_Free(self->cipher_key);
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -111,8 +112,8 @@ static PyMethodDef SqlCipherMethods[] = {
     {NULL, NULL, 0, NULL}};
 
 static PyTypeObject SQLiteDBType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "sqlite_wrapper.SQLiteDB",
-    .tp_doc = "SQLite database wrapper",
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "sqlscipher",
+    .tp_doc = "Python bindings for SQL Cipher",
     .tp_basicsize = sizeof(SQLiteDBObject),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
@@ -135,10 +136,11 @@ PyMODINIT_FUNC PyInit_sqlcipher(void) {
     return NULL;
 
   Py_INCREF(&SQLiteDBType);
-  if (PyModule_AddObject(m, "SQLiteDB", (PyObject*)&SQLiteDBType) < 0) {
+  if (PyModule_AddObject(m, "open", (PyObject*)&SQLiteDBType) < 0) {
     Py_DECREF(&SQLiteDBType);
     Py_DECREF(m);
     return NULL;
   }
+
   return m;
 }
