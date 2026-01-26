@@ -23,6 +23,12 @@ print(db.execute("SELECT * FROM movies;"))
 db.close()
 ```
 
+It has support for SQL parameterized strings
+
+```
+db.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("Emily", "1Password"))
+```
+
 ## Installing
 
 Compiled only for Linux x86-64.

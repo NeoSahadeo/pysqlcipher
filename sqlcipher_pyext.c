@@ -23,12 +23,11 @@ static void SQLiteDB_dealloc(SQLiteDBObject* self) {
 static PyObject* SQLiteDB_new(PyTypeObject* type,
                               PyObject* args,
                               PyObject* kwds) {
-  static char* kwlist[] = {"path", "key", NULL};
   const char *path, *key;
 
   SQLiteDBObject* self;
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "ss", kwlist, &path, &key))
+  if (!PyArg_ParseTuple(args, "ss", &path, &key))
     return NULL;
 
   self = (SQLiteDBObject*)type->tp_alloc(type, 0);
@@ -36,6 +35,7 @@ static PyObject* SQLiteDB_new(PyTypeObject* type,
     self->db = NULL;
     self->db_path = PyMem_Malloc(strlen(path) + 1);
     self->cipher_key = PyMem_Malloc(strlen(key) + 1);
+
     if (!self->db_path) {
       Py_DECREF(self);
       return PyErr_NoMemory();
@@ -44,17 +44,17 @@ static PyObject* SQLiteDB_new(PyTypeObject* type,
       Py_DECREF(self);
       return PyErr_NoMemory();
     }
+
     strcpy(self->db_path, path);
     strcpy(self->cipher_key, key);
   }
+
   return (PyObject*)self;
 }
 
 static int SQLiteDB_init(SQLiteDBObject* self, PyObject* args, PyObject* kwds) {
   if (self->db_path) {
-    int rc = sqlite3_open(self->db_path, &self->db);
-
-    if (rc != SQLITE_OK) {
+    if (sqlite3_open(self->db_path, &self->db) != SQLITE_OK) {
       PyErr_Format(PyExc_RuntimeError, "Failed to open database: %s",
                    sqlite3_errmsg(self->db));
       sqlite3_close(self->db);
@@ -75,14 +75,18 @@ static int py_callback(void* data, int columns, char** values, char** names) {
     PyTuple_SetItem(row, i, PyUnicode_FromString(values[i] ? values[i] : ""));
   }
 
-  PyList_Append(list, row);  // row refcount stolen
+  if (PyList_Append(list, row) < 0) {
+    PyErr_SetString(PyExc_RuntimeError, "Append to output list failed.");
+    return 1;
+  };
+  // row refcount stolen by append
   Py_DECREF(row);
   return 0;
 }
 
-static PyObject* py_execute(SQLiteDBObject* self, PyObject* args) {
+static PyObject* execute_sql(SQLiteDBObject* self, PyObject* args) {
   const char* sql;
-  char* errMsg;
+  char* err_msg;
   PyObject* result_list;
   PyObject* params = NULL;
   sqlite3_stmt* stmt;
@@ -97,20 +101,27 @@ static PyObject* py_execute(SQLiteDBObject* self, PyObject* args) {
   }
 
   result_list = PyList_New(0);
+
   if (params && PyTuple_Check(params)) {
     Py_ssize_t param_count = PyTuple_Size(params);
+
     for (Py_ssize_t i = 0; i < param_count; i++) {
       PyObject* param = PyTuple_GetItem(params, i);
+
       if (PyUnicode_Check(param)) {
         const char* text = PyUnicode_AsUTF8(param);
         sqlite3_bind_text(stmt, i + 1, text, -1, SQLITE_TRANSIENT);
+
       } else if (PyLong_Check(param)) {
         sqlite3_bind_int64(stmt, i + 1, PyLong_AsLongLong(param));
+
       } else if (PyFloat_Check(param)) {
         sqlite3_bind_double(stmt, i + 1, PyFloat_AsDouble(param));
+
       } else if (PyBytes_Check(param)) {
         sqlite3_bind_blob(stmt, i + 1, PyBytes_AsString(param),
                           PyBytes_Size(param), SQLITE_TRANSIENT);
+
       } else if (param == Py_None) {
         sqlite3_bind_null(stmt, i + 1);
       }
@@ -154,10 +165,10 @@ static PyObject* py_execute(SQLiteDBObject* self, PyObject* args) {
     }
     sqlite3_finalize(stmt);
   } else {
-    if (sqlite3_exec(self->db, sql, py_callback, result_list, &errMsg) !=
+    if (sqlite3_exec(self->db, sql, py_callback, result_list, &err_msg) !=
         SQLITE_OK) {
-      PyErr_SetString(PyExc_RuntimeError, errMsg);
-      sqlite3_free(errMsg);
+      PyErr_SetString(PyExc_RuntimeError, err_msg);
+      sqlite3_free(err_msg);
       return NULL;
     }
   }
@@ -165,14 +176,15 @@ static PyObject* py_execute(SQLiteDBObject* self, PyObject* args) {
   return result_list;
 }
 
-static PyObject* py_close(SQLiteDBObject* self, PyObject* args) {
+static PyObject* close_db(SQLiteDBObject* self, PyObject* args) {
   sqlite3_close(self->db);
   Py_RETURN_NONE;
 }
 
 static PyMethodDef SqlCipherMethods[] = {
-    {"execute", (PyCFunction)py_execute, METH_VARARGS, "Execute a SQL command"},
-    {"close", (PyCFunction)py_close, METH_NOARGS,
+    {"execute", (PyCFunction)execute_sql, METH_VARARGS,
+     "Execute a SQL command"},
+    {"close", (PyCFunction)close_db, METH_NOARGS,
      "Close the database connection"},
     {NULL, NULL, 0, NULL}};
 
