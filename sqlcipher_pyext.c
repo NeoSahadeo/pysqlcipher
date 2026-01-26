@@ -124,8 +124,15 @@ static PyObject* py_execute(SQLiteDBObject* self, PyObject* args) {
         switch (sqlite3_column_type(stmt, i)) {
           case SQLITE_TEXT:
             PyList_SetItem(row, i,
-                           PyUnicode_FromString(
-                               (const char*)sqlite3_column_text(stmt, i)));
+                           PyUnicode_FromStringAndSize(
+                               (const char*)sqlite3_column_text(stmt, i),
+                               sqlite3_column_bytes(stmt, i)));
+            break;
+          case SQLITE_BLOB:
+            PyList_SetItem(
+                row, i,
+                PyBytes_FromStringAndSize(sqlite3_column_blob(stmt, i),
+                                          sqlite3_column_bytes(stmt, i)));
             break;
           case SQLITE_INTEGER:
             PyList_SetItem(row, i,
