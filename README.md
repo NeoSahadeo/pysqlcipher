@@ -31,9 +31,14 @@ db.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("Emily", "1P
 
 ## Installing
 
-Compiled only for Linux x86-64.
+Wheels only exist for Linux x86-64.
 
-Download the `sqlcipher.cpython-314-x86_64-linux-gnu.so` file.
+```bash
+pip install git+https://github.com/NeoSahadeo/pysqlcipher.git
+```
+
+For a Windows build, please send a PR. You will have to compile it yourself,
+read the github workflow to see the general steps.
 
 ## Compiling
 
