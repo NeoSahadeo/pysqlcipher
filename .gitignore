@@ -1,3 +1,5 @@
+.venv
 sqlcipher/
 build
 *.db
+sqlcipher.egg-info

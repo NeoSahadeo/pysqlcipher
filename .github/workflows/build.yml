@@ -1,0 +1,40 @@
+name: Build Windows Wheels
+on: [push]
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.14'
+
+    - name: Install Python deps
+      shell: powershell
+      run: |
+        pip install setuptools wheel
+
+    - name: Build SQLCipher (Windows MSVC)
+      shell: powershell
+      run: |
+        git clone --depth=1 https://github.com/sqlcipher/sqlcipher
+        cd sqlcipher
+        # Use MSVC nmake (no ./configure on Windows)
+        nmake /f Makefile.msc ^
+          TOP=..\sqlcipher ^
+          CFLAGS="/DSQLITE_HAS_CODEC /DSQLITE_EXTRA_INIT=sqlcipher_extra_init /DSQLITE_EXTRA_SHUTDOWN=sqlcipher_extra_shutdown" ^
+          LDFLAGS="crypt32.lib advapi32.lib user32.lib ws2_32.lib"
+        # Copy object file (Windows creates .obj not .o)
+        copy sqlite3.obj ..\sqlcipher\
+        cd ..
+
+    - name: Build wheel
+      shell: powershell
+      run: |
+        pip wheel . -w dist/ --no-build-isolation
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: windows-wheels
+        path: dist/*.whl

@@ -26,6 +26,7 @@ class TestSQLExecute(unittest.TestCase):
     def test_insert(self):
         self.test_table_creation()
         self._conn.execute("INSERT INTO users (username, salt) VALUES (?, ?)", ("neo", b"12345"))
+        data = self._conn.execute("SELECT * from users WHERE username = ?", ("neo",))
         assert (len(data) > 0)
 
     def test_key_change(self):

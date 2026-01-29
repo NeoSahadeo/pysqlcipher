@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools >= 65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sqlcipher"
+version = "0.1"
+authors = [{name = "Neo Sahadeo"}]
+description = "Python binding for SQLCipher"
+dependencies = ["cryptography"]
+
+[tool.setuptools.packages.find]
+include = ["*"]
